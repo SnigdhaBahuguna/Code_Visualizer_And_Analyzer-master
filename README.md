@@ -7,7 +7,7 @@ Tokenizes C source code into keywords, identifiers, literals, operators, separat
 
 Handles:
 
-Keywords like int, if, for, return
+Keywords like int, if, for, return 
 
 Literals: numbers, strings
 
