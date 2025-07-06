@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>C Compiler Visualizer</title>
+  <!-- Favicon -->
+  <link rel="icon" href="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg">
+  <style>
+    /* Base Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #f0f0f0;
+      height: 100%;
+      position: relative;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated Background Canvas */
+    #bgCanvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    header, footer {
+      text-align: center;
+      padding: 20px;
+      background: #1e1e1e;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      color: #00ffc3;
+      font-size: 2rem;
+      letter-spacing: 1px;
+      margin-bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .gradient-text {
+      background: linear-gradient(90deg, #00ffc3 30%, #00bfff 70%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    footer p {
+      color: #666;
+      font-size: 0.95rem;
+      letter-spacing: 1px;
+    }
+    footer {
+      background: #1e1e1e;
+      border-top: 2px solid #00ffc355;
+      box-shadow: 0 -2px 20px #00ffc333;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 20px 40px;
+    }
+
+    .input-section, .output-section {
+      background: rgba(30,30,30,0.95);
+      border-radius: 16px;
+      box-shadow: 0 4px 24px 0 #00ffc355, 0 2px 8px 0 #000a;
+      border: 1.5px solid #00ffc355;
+      padding: 24px 20px 20px;
+      margin-bottom: 24px;
+      transition: box-shadow 0.2s;
+      animation: fadeInUp 0.7s cubic-bezier(.23,1.01,.32,1) both;
+    }
+    .input-section:hover, .output-section:hover {
+      box-shadow: 0 6px 32px 0 #00ffc399, 0 2px 8px 0 #000c;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      color: #00ffc3;
+      margin-bottom: 10px;
+      display: block;
+      letter-spacing: 1px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 150px;
+      font-family: monospace;
+      font-size: 16px;
+      padding: 10px;
+      background: #121212;
+      color: #f0f0f0;
+      border: 1.5px solid #555;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      resize: vertical;
+      box-shadow: 0 2px 8px #0004;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #00ffc3;
+      box-shadow: 0 0 8px #00ffc388;
+    }
+
+    .buttons {
+      text-align: center;
+      margin-bottom: 0;
+    }
+
+    button {
+      padding: 12px 28px;
+      font-size: 16px;
+      background: linear-gradient(90deg, #00ffc3 60%, #00bfff 100%);
+      border: none;
+      color: #111;
+      border-radius: 24px;
+      cursor: pointer;
+      margin: 0 8px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 8px #00ffc355;
+      transition: box-shadow 0.2s, background 0.2s;
+    }
+    button:hover {
+      background: linear-gradient(90deg, #00bfff 60%, #00ffc3 100%);
+      box-shadow: 0 4px 24px #00ffc399;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background: #1e1e1e;
+      animation: fadeIn 0.5s ease-in-out;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      border: none;
+      border-bottom: 1px solid #222;
+      padding: 10px 8px;
+      text-align: left;
+    }
+    th {
+      background: linear-gradient(90deg, #00ffc344 60%, #00bfff44 100%);
+      color: #00ffc3;
+      font-weight: bold;
+      font-size: 1.05em;
+    }
+    td {
+      color: #e0e0e0;
+      font-size: 1em;
+    }
+    .table-container {
+      overflow-x: auto;
+      border-radius: 8px;
+    }
+
+    .error {
+      color: #ff6b6b;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    /* Scrollbars for AST and TAC */
+    #astOutput, #semanticOutput, #tacOutput {
+      max-height: 420px;
+      overflow: auto;
+      scroll-behavior: smooth;
+      padding-right: 8px;
+    }
+    #astOutput::-webkit-scrollbar,
+    #tacOutput::-webkit-scrollbar,
+    #semanticOutput::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    #astOutput::-webkit-scrollbar-thumb,
+    #tacOutput::-webkit-scrollbar-thumb,
+    #semanticOutput::-webkit-scrollbar-thumb {
+      background: #00ffc355;
+      border-radius: 4px;
+    }
+    #astOutput::-webkit-scrollbar-thumb:hover,
+    #tacOutput::-webkit-scrollbar-thumb:hover,
+    #semanticOutput::-webkit-scrollbar-thumb:hover {
+      background: #00ffc3;
+    }
+
+    /* AST Nodes */
+    .ast-node > .node-header {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 6px;
+    }
+    .ast-node.collapsed > ul {
+      display: none;
+    }
+    .ast-node > ul {
+      list-style-type: none;
+      margin: 10px 0 0 24px;
+      padding-left: 20px;
+      border-left: 1px dashed #00ffc3;
+    }
+    .caret {
+      display: inline-block;
+      transition: transform 0.15s ease;
+      transform: rotate(90deg);
+    }
+    .ast-leaf {
+      color: #f0f0f0;
+    }
+    .node-label {
+      font-weight: bold;
+      color: #aaffaa;
+    }
+    .node-key {
+      font-style: italic;
+      color: #00ffc3;
+    }
+
+    #tacOutput pre {
+      background-color: #111;
+      padding: 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 15px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      border: 1px solid #444;
+    }
+
+    /* Semantic Section Styles */
+    #semanticContent {
+      font-family: monospace;
+      font-size: 15px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      padding: 10px;
+      border-radius: 6px;
+      background-color: #111;
+      border: 1px solid #444;
+    }
+    .semantic-error {
+      color: #ff5555;
+    }
+    .semantic-warning {
+      color: #ffcc00;
+    }
+    .semantic-ok {
+      color: #00ff99;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(40px);}
+      to { opacity: 1; transform: none;}
+    }
+
+    /* Responsive Tweaks */
+    @media (max-width: 700px) {
+      .container { padding: 0 5vw 40px; }
+      header h1 { font-size: 1.3rem; }
+      .section-title { font-size: 1rem; }
+      .input-section, .output-section { padding: 16px 6vw 14px; }
+      button { padding: 10px 12px; font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Animated Background -->
+  <canvas id="bgCanvas"></canvas>
+
+  <header>
+    <h1>
+      <span style="font-size:2.2rem;vertical-align:-0.2em;">🖥️</span>
+      <span class="gradient-text">C Compiler Visualizer</span>
+    </h1>
+  </header>
+
+  <main class="container">
+    <section class="input-section">
+      <label for="codeInput" class="section-title">Your C Code</label>
+      <textarea id="codeInput" placeholder="Enter C code here..."></textarea>
+      <div class="buttons">
+        <button id="tokenizeBtn">Tokenize</button>
+        <button id="parseBtn">Parse</button>
+        <button id="semanticBtn">Semantic Check</button>
+      </div>
+    </section>
+
+    <section id="tokenOutput" class="output-section">
+      <h2 class="section-title">Tokens</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Token Type</th>
+              <th>Lexeme</th>
+            </tr>
+          </thead>
+          <tbody id="tokenTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="astOutput" class="output-section">
+      <h2 class="section-title">Abstract Syntax Tree</h2>
+      <!-- AST nodes will be injected here -->
+    </section>
+<!-- 
+    <section id="tacOutput" class="output-section">
+      <h2 class="section-title">Intermediate Code (TAC)</h2>
+      <pre id="tacContent">Click "Parse" to view intermediate code...</pre>
+    </section> -->
+
+    <section id="semanticOutput" class="output-section">
+      <h2 class="section-title">Semantic Analysis</h2>
+      <pre id="semanticContent">Click "Semantic Check" to analyze semantics...</pre>
+    </section>
+  </main>
+
+  <footer>
+    <p>Made with ♥ for better understanding of C compilation</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="lexer.js"></script>
+  <script src="parser.js"></script>
+  <script src="icg.js"></script>
+  <script src="semantic.js"></script>
+  
+
+  <!-- Animated Particle Background Script -->
+  <script>
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let particles = [];
+    for(let i=0;i<60;i++){
+      particles.push({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        r: Math.random()*2+1,
+        dx: (Math.random()-0.5)*0.4,
+        dy: (Math.random()-0.5)*0.4,
+        color: `rgba(0,255,195,${Math.random()*0.4+0.2})`
+      });
+    }
+    function animate(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for(let p of particles){
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.r,0,2*Math.PI);
+        ctx.fillStyle=p.color;
+        ctx.fill();
+        p.x+=p.dx;
+        p.y+=p.dy;
+        if(p.x<0||p.x>canvas.width) p.dx*=-1;
+        if(p.y<0||p.y>canvas.height) p.dy*=-1;
+      }
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>

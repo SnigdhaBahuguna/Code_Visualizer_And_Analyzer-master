@@ -1,0 +1,18 @@
+// C Code Flowchart
+strict digraph {
+	rankdir=TB
+	node0 [label=Start shape=ellipse]
+	node1 [label="Function: fact()" fillcolor=lightgrey shape=box style=filled]
+	node0 -> node1
+	node2 [label="If ((n == 1) || (n == 0))" shape=diamond]
+	node1 -> node2
+	node3 [label=" " height=0.01 shape=point width=0.01]
+	node4 [label="Return 1" fillcolor=lightblue shape=parallelogram style=filled]
+	node2 -> node4
+	node4 -> node3 [label=True]
+	node2 -> node3 [label=False]
+	node5 [label="Return fact(n - 1) + fact(n - 2)" fillcolor=lightblue shape=parallelogram style=filled]
+	node3 -> node5
+	node6 [label=End shape=ellipse]
+	node5 -> node6
+}
